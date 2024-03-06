@@ -20,6 +20,7 @@ public class RegExp {
             String line;
             String upper_result;
             String upper_str1;
+            String upper_str2;
             int row=1;
             while ((line = reader.readLine()) != null) {
                 upper_result=line.toUpperCase();
@@ -69,13 +70,26 @@ public class RegExp {
                         if(i_2==upper_result.length()-str1.length()){
                             System.out.print("N,");
                         }
-                    
                     }
-
                 }
-               
-
                 //condition 3
+                upper_str2=str2.toUpperCase();
+                int Str2_count=0;
+                for(int i_3=0;i_3<=upper_result.length()-str2.length();i_3++){
+                    if(upper_result.charAt(i_3)==upper_str2.charAt(0)){
+                        if(upper_result.substring(i_3,i_3+str2.length()).equals(upper_str2)){
+                            Str2_count++;
+                        
+                        }
+
+                    }
+                }
+                if(Str2_count>=s2Count){
+                    System.out.print("Y,");
+                }
+                else{
+                    System.out.print("N,");
+                }
 
                 //condition 4
                 row++;
