@@ -91,7 +91,7 @@ public class RegExp {
                     System.out.print("N,");
                 }
 
-                //condition 4
+                //condition 4//
                 row++;
                 System.out.println();
             }
