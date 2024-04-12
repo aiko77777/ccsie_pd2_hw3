@@ -147,7 +147,7 @@ public class HtmlParser{
                     }
                 }
                 
-//modified 
+//modified  
                 //System.out.println(value_lines.get(1).text()); //Q:why can we use get?
                 
                 // writer.close();
