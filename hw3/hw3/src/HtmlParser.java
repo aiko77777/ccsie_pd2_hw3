@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.BufferedReader;
@@ -31,16 +32,18 @@ public class HtmlParser{
                 Elements value_lines=doc.body().select("td");
                 if(!file.exists()){
                     PrintWriter writer = new PrintWriter(new File("data.csv"));
-                    for (Element stock_name_line : stock_name_lines) {
+                    for (Element stock_name_line : stock_name_lines) {//write stock_names
                     //System.out.println(stock_name_line.text());
                         writer.append(stock_name_line.text());
                         writer.append(",");
                     }
                     writer.append("\n");
-                    //writer.println("hey");
-                    for (Element value_line : value_lines) {
+                    writer.append(doc.title());
+                    writer.append("\n");
+                    for (Element value_line : value_lines) {    //write values and strip the excess zeros behide "."
                     //System.out.println(value_line.text());
-                        writer.append(value_line.text());
+                        BigDecimal value = new BigDecimal(value_line.text());
+                        writer.append(value.stripTrailingZeros().toString());
                         writer.append(",");
                     }
                     writer.append("\n");
@@ -48,13 +51,17 @@ public class HtmlParser{
                     }
                     else{
                     Path filePath = Paths.get("data.csv");
-                    for (Element value_line : value_lines) {
+                    Files.write(filePath,doc.title().getBytes(), StandardOpenOption.APPEND);
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                    for (Element value_line : value_lines) {    //if data.csv has been existed,we need to just write values to new line.
                         //System.out.println(value_line.text());
-                        Files.write(filePath,value_line.text().getBytes(), StandardOpenOption.APPEND);
+                        BigDecimal value = new BigDecimal(value_line.text());
+                        Files.write(filePath,value.stripTrailingZeros().toString().getBytes(), StandardOpenOption.APPEND);
                         Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
                         }
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                     }
+                    
                 
             }
 //if input are {1} {0},read the lines in current data.csv and write in output.csv 
@@ -63,8 +70,11 @@ public class HtmlParser{
                 BufferedReader reader=new BufferedReader(new FileReader("data.csv"));
                 String data_line=null;
                 while ((data_line=reader.readLine())!= null) {
-                    writer.append(data_line);
-                    writer.append("\n");
+                    if(!data_line.contains("day")){
+                        writer.append(data_line);
+                        writer.append("\n");
+                    }
+                    
                 }
                 reader.close();
                 writer.close();
@@ -74,7 +84,16 @@ public class HtmlParser{
                 String data_line=null; 
                 int row=1;                
                 int stock_posi=0;
-                ArrayList<String> spec_value=new ArrayList<>(); 
+                ArrayList<String> spec_value=new ArrayList<>();
+                ArrayList<Integer> needed_days=new ArrayList<>();
+                ArrayList<String> input_days=new ArrayList<>();
+
+                Integer day_begin=Integer.valueOf(args[3])-1;   //modification because there is day_begin++ in for loop
+                Integer day_end=Integer.valueOf(args[4]);
+                for(day_begin++;day_begin<=day_end;day_begin++){//the specific days we need to find
+                    needed_days.add(day_begin);
+                }
+//append the stock names and values in Arraylist so that we can find the specific stock and its value we want.
                 while((data_line=reader.readLine())!=null){
                     if(row==1){
                         ArrayList<String> stock_names_array=new ArrayList<String>(Arrays.asList(data_line.split(",")));
@@ -82,14 +101,32 @@ public class HtmlParser{
                         stock_posi=stock_names_array.indexOf(args[2]);
                     }
                     else{
-                        ArrayList<String> value_array=new ArrayList<>(Arrays.asList(data_line.split(",")));
-                        spec_value.add(value_array.get(stock_posi));
+                        if(data_line.contains("day")){
+                            input_days.add(data_line.substring(3,data_line.length()));
+                        }
+                        else{
+                            ArrayList<String> value_array=new ArrayList<>(Arrays.asList(data_line.split(",")));
+                            spec_value.add(value_array.get(stock_posi));
+                        }   
                     }
                     row++;
                 }
+////day_filter:
+//input_days = all days from the crawling
+//if input days of each line not in the range we need,find the index of it,then delete the same index in spec_value we're going to output.
+                for(String each_input_day : input_days){
+                    if(!needed_days.contains(Integer.valueOf(each_input_day))){
+                        spec_value.remove(input_days.indexOf(each_input_day));
+                    }
+                }
+
+////
                 File file =new File("./output.csv");
                 if(!file.exists()){
                     PrintWriter writer = new PrintWriter(new File("output.csv"));
+//when {1} {1} we only need:
+//args[2],args[3],args[4] 
+//values
                     writer.append(args[2]);
                     //writer.append(args[3]);
                     //writer.append(args[4]);
@@ -109,14 +146,12 @@ public class HtmlParser{
 
                     }
                 }
-
                 
-
+//modified file
                 //System.out.println(value_lines.get(1).text()); //Q:why can we use get?
                 
                 // writer.close();
             }
-            
 
         } catch (IOException e) {
             e.printStackTrace();
