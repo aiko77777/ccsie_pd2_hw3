@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.BufferedReader;
@@ -16,6 +17,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 public class HtmlParser{
+    static ArrayList<String> simple_moving_avg(ArrayList<String> values){
+        ArrayList<String> output_values=new ArrayList<>();
+        for(int start_day=0;start_day<=values.size()-5;start_day++){
+            double sum=0;
+            for(int i =0;i<5;i++){
+                sum+=Double.valueOf(values.get(i+start_day));
+            }
+            BigDecimal result = new BigDecimal(sum/5.0);
+            output_values.add(start_day,result.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString());
+        }
+        return output_values;
+    }
     
     public static void main(String[] args) {
         try {
@@ -30,21 +43,33 @@ public class HtmlParser{
                 File file=new File("./data.csv");
                 Elements stock_name_lines = doc.body().select("th");
                 Elements value_lines=doc.body().select("td");
+                int name_size=stock_name_lines.size();
+                int name_count=0;
+                int value_count=0;
                 if(!file.exists()){
                     PrintWriter writer = new PrintWriter(new File("data.csv"));
                     for (Element stock_name_line : stock_name_lines) {//write stock_names
                     //System.out.println(stock_name_line.text());
+                        name_count++;
                         writer.append(stock_name_line.text());
-                        writer.append(",");
+                        if(name_count!=name_size){
+                            writer.append(",");
+                        }
+                        
                     }
+                    
                     writer.append("\n");
                     writer.append(doc.title());
                     writer.append("\n");
                     for (Element value_line : value_lines) {    //write values and strip the excess zeros behide "."
                     //System.out.println(value_line.text());
+                        value_count++;
                         BigDecimal value = new BigDecimal(value_line.text());
                         writer.append(value.stripTrailingZeros().toString());
-                        writer.append(",");
+                        if(value_count!=name_size){
+                            writer.append(",");
+
+                        }
                     }
                     writer.append("\n");
                     writer.close();
@@ -55,9 +80,12 @@ public class HtmlParser{
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                     for (Element value_line : value_lines) {    //if data.csv has been existed,we need to just write values to new line.
                         //System.out.println(value_line.text());
+                        value_count++;
                         BigDecimal value = new BigDecimal(value_line.text());
                         Files.write(filePath,value.stripTrailingZeros().toString().getBytes(), StandardOpenOption.APPEND);
-                        Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
+                        if(value_count!=name_size){
+                            Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
+                        }
                         }
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                     }
@@ -127,27 +155,30 @@ public class HtmlParser{
 //when {1} {1} we only need:
 //args[2],args[3],args[4] 
 //values
+                    
                     writer.append(args[2]);
                     //writer.append(args[3]);
                     //writer.append(args[4]);
                     writer.append("\n");
-                    for(int count=0;count<spec_value.size();count++){
-                        writer.append(spec_value.get(count));
+                    for(int count=0;count<simple_moving_avg(spec_value).size();count++){
+                        writer.append(simple_moving_avg(spec_value).get(count));
                         writer.append(",");
                     }
+                    writer.append("\n");
                     writer.close();
                 }
                 else{
                     Path filePath = Paths.get("output.csv");
                     Files.write(filePath,args[2].getBytes(),StandardOpenOption.APPEND);
-                    for(int count=0;count<spec_value.size();count++){
-                        Files.write(filePath,spec_value.get(count).getBytes(),StandardOpenOption.APPEND);
+                    for(int count=0;count<simple_moving_avg(spec_value).size();count++){
+                        Files.write(filePath,simple_moving_avg(spec_value).get(count).getBytes(),StandardOpenOption.APPEND);
                         Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
 
                     }
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                 }
                 
-//modified file
+//modified  
                 //System.out.println(value_lines.get(1).text()); //Q:why can we use get?
                 
                 // writer.close();
