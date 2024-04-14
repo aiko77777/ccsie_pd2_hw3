@@ -1,4 +1,3 @@
-// JsoupExample.java
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
@@ -29,7 +28,37 @@ public class HtmlParser{
         }
         return output_values;
     }
+    public static double squareRoot(double value)   {  
+        //temporary variable  
+        double t;  
+        double sqrtroot=value/2;  
+        do{  
+        t=sqrtroot;  
+        sqrtroot=(t+(value/t))/2;  
+        }while((t-sqrtroot)!= 0);
     
+        return sqrtroot;  
+        }
+    public static double average(ArrayList<String> values){
+        double sum=0;
+        for(int i=0;i<values.size();i++){
+            sum+=Double.valueOf(values.get(i));
+        }
+    
+        return sum/Double.valueOf(values.size());
+    }
+
+    public static String standard_Deviation(ArrayList<String> values){
+        double sum_of_Squared_Deviations=0;
+        for(int i=0;i<values.size();i++){
+            sum_of_Squared_Deviations+=(Double.valueOf(values.get(i))-average(values))*(Double.valueOf(values.get(i))-average(values));
+        }
+        BigDecimal result = new BigDecimal(squareRoot(sum_of_Squared_Deviations/(values.size()-1)));
+        return result.setScale(2,RoundingMode.HALF_UP).toString();
+        
+    }
+
+
     public static void main(String[] args) {
         try {
             Document doc = Jsoup.connect("https://pd2-hw3.netdb.csie.ncku.edu.tw/").get();
@@ -39,13 +68,14 @@ public class HtmlParser{
 //input "0":read the <th> and <td> elements from the web
 //if there is no data.csv exists creat a data.csv and write in,
 //else,next line and continue writing in with value lines.
+            int name_count=0;
+            int value_count=0;
             if (args[0].equals("0")){
                 File file=new File("./data.csv");
                 Elements stock_name_lines = doc.body().select("th");
                 Elements value_lines=doc.body().select("td");
                 int name_size=stock_name_lines.size();
-                int name_count=0;
-                int value_count=0;
+                
                 if(!file.exists()){
                     PrintWriter writer = new PrintWriter(new File("data.csv"));
                     for (Element stock_name_line : stock_name_lines) {//write stock_names
@@ -65,7 +95,7 @@ public class HtmlParser{
                     //System.out.println(value_line.text());
                         value_count++;
                         BigDecimal value = new BigDecimal(value_line.text());
-                        writer.append(value.stripTrailingZeros().toString());
+                        writer.append(value.stripTrailingZeros().toString());//STRIP ZERO!!
                         if(value_count!=name_size){
                             writer.append(",");
 
@@ -82,15 +112,13 @@ public class HtmlParser{
                         //System.out.println(value_line.text());
                         value_count++;
                         BigDecimal value = new BigDecimal(value_line.text());
-                        Files.write(filePath,value.stripTrailingZeros().toString().getBytes(), StandardOpenOption.APPEND);
+                        Files.write(filePath,value.stripTrailingZeros().toString().getBytes(), StandardOpenOption.APPEND);//STRIP ZERO!!
                         if(value_count!=name_size){
                             Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
                         }
                         }
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                     }
-                    
-                
             }
 //if input are {1} {0},read the lines in current data.csv and write in output.csv 
             else if(args[0].equals("1") && args[1].equals("0")){
@@ -113,14 +141,8 @@ public class HtmlParser{
                 int row=1;                
                 int stock_posi=0;
                 ArrayList<String> spec_value=new ArrayList<>();
-                ArrayList<Integer> needed_days=new ArrayList<>();
                 ArrayList<String> input_days=new ArrayList<>();
-
-                Integer day_begin=Integer.valueOf(args[3])-1;   //modification because there is day_begin++ in for loop
-                Integer day_end=Integer.valueOf(args[4]);
-                for(day_begin++;day_begin<=day_end;day_begin++){//the specific days we need to find
-                    needed_days.add(day_begin);
-                }
+                
 //append the stock names and values in Arraylist so that we can find the specific stock and its value we want.
                 while((data_line=reader.readLine())!=null){
                     if(row==1){
@@ -139,30 +161,34 @@ public class HtmlParser{
                     }
                     row++;
                 }
-////day_filter:
-//input_days = all days from the crawling
-//if input days of each line not in the range we need,find the index of it,then delete the same index in spec_value we're going to output.
-                for(String each_input_day : input_days){
-                    if(!needed_days.contains(Integer.valueOf(each_input_day))){
-                        spec_value.remove(input_days.indexOf(each_input_day));
-                    }
-                }
+                
+                System.out.println(spec_value);
 
-////
+                ArrayList<String> spec_value2=new ArrayList<>();
+                System.out.println(Integer.valueOf(args[3])-1);
+                System.out.println(Integer.valueOf(args[4]));
+                for(int i=Integer.valueOf(args[3])-1;i<Integer.valueOf(args[4]);i++){
+                    spec_value2.add(spec_value.get(i));
+                }
                 File file =new File("./output.csv");
                 if(!file.exists()){
                     PrintWriter writer = new PrintWriter(new File("output.csv"));
 //when {1} {1} we only need:
 //args[2],args[3],args[4] 
-//values
-                    
+//values    
                     writer.append(args[2]);
-                    //writer.append(args[3]);
-                    //writer.append(args[4]);
+                    writer.append(",");
+                    writer.append(args[3]);
+                    writer.append(",");
+                    writer.append(args[4]);
                     writer.append("\n");
-                    for(int count=0;count<simple_moving_avg(spec_value).size();count++){
-                        writer.append(simple_moving_avg(spec_value).get(count));
-                        writer.append(",");
+                    for(int count=0;count<simple_moving_avg(spec_value2).size();count++){ //put in svm!!
+                        writer.append(simple_moving_avg(spec_value2).get(count));
+                        value_count++;
+                        if(count!=simple_moving_avg(spec_value2).size()-1){
+                            writer.append(",");
+
+                        }
                     }
                     writer.append("\n");
                     writer.close();
@@ -170,18 +196,80 @@ public class HtmlParser{
                 else{
                     Path filePath = Paths.get("output.csv");
                     Files.write(filePath,args[2].getBytes(),StandardOpenOption.APPEND);
-                    for(int count=0;count<simple_moving_avg(spec_value).size();count++){
-                        Files.write(filePath,simple_moving_avg(spec_value).get(count).getBytes(),StandardOpenOption.APPEND);
-                        Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
-
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,args[3].getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,args[4].getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                    for(int count=0;count<simple_moving_avg(spec_value2).size();count++){
+                        Files.write(filePath,simple_moving_avg(spec_value2).get(count).getBytes(),StandardOpenOption.APPEND);
+                        if(count!=simple_moving_avg(spec_value2).size()-1){
+                            Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                        }
                     }
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                 }
-                
-//modified  
                 //System.out.println(value_lines.get(1).text()); //Q:why can we use get?
                 
-                // writer.close();
+            }
+            else if(args[0].equals("1")&& args[1].equals("2")){
+                BufferedReader reader=new BufferedReader(new FileReader("data.csv"));
+                String data_line=null; 
+                int row=1;                
+                int stock_posi=0;
+                ArrayList<String> spec_value=new ArrayList<>();                
+//append the stock names and values in Arraylist so that we can find the specific stock and its value we want.
+                while((data_line=reader.readLine())!=null){
+                    if(row==1){
+                        ArrayList<String> stock_names_array=new ArrayList<String>(Arrays.asList(data_line.split(",")));
+                        //find the position of args[2]
+                        stock_posi=stock_names_array.indexOf(args[2]);
+                    }
+                    else{
+                        if(data_line.contains("day")){
+                                ;                        }
+                        else{
+                            ArrayList<String> value_array=new ArrayList<>(Arrays.asList(data_line.split(",")));
+                            spec_value.add(value_array.get(stock_posi));
+                        }   
+                    }
+                    row++;
+                }
+                System.out.println(spec_value);
+                ArrayList<String> spec_value2=new ArrayList<>();
+                System.out.println(Integer.valueOf(args[3])-1);
+                System.out.println(Integer.valueOf(args[4]));
+                for(int i=Integer.valueOf(args[3])-1;i<Integer.valueOf(args[4]);i++){
+                    spec_value2.add(spec_value.get(i));
+                }
+
+                File file =new File("./output.csv");
+                if(!file.exists()){
+                    PrintWriter writer = new PrintWriter(new File("output.csv"));
+                    writer.append(args[2]);
+                    writer.append(",");
+                    writer.append(args[3]);
+                    writer.append(",");
+                    writer.append(args[4]);
+                    writer.append("\n");
+                    
+                    writer.append(standard_Deviation(spec_value2));
+                    writer.append("\n");
+                    writer.close();
+
+                }
+                else{
+                    Path filePath = Paths.get("output.csv");
+                    Files.write(filePath,args[2].getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,args[3].getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,args[4].getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                    
+                    Files.write(filePath,standard_Deviation(spec_value2).getBytes(), StandardOpenOption.APPEND);
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                }
             }
 
         } catch (IOException e) {
