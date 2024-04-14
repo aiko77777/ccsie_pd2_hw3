@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 public class HtmlParser{
     static ArrayList<String> simple_moving_avg(ArrayList<String> values){
         ArrayList<String> output_values=new ArrayList<>();
@@ -57,8 +58,6 @@ public class HtmlParser{
         return result.setScale(2,RoundingMode.HALF_UP).toString();
         
     }
-
-
     public static void main(String[] args) {
         try {
             Document doc = Jsoup.connect("https://pd2-hw3.netdb.csie.ncku.edu.tw/").get();
@@ -270,6 +269,100 @@ public class HtmlParser{
                     Files.write(filePath,standard_Deviation(spec_value2).getBytes(), StandardOpenOption.APPEND);
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                 }
+            }
+            else if(args[0].equals("1")&& args[1].equals("3")){
+                String data_line=null; 
+                int stock_posi=0;
+                ArrayList<String> deviation_array=new ArrayList<String>();
+                Elements stock_names = doc.body().select("th");
+                for(Element stock_name : stock_names){
+                    int row=1;                
+                    BufferedReader reader=new BufferedReader(new FileReader("data.csv"));
+                    ArrayList<String> spec_value=new ArrayList<>();
+                    stock_posi=stock_names.indexOf(stock_name);
+                    while((data_line=reader.readLine())!=null){
+                        if(row!=1){
+                            if(data_line.contains("day")){
+                                    ;                        
+                            }
+                            else{
+                                ArrayList<String> value_array=new ArrayList<>(Arrays.asList(data_line.split(",")));
+                                spec_value.add(value_array.get(stock_posi));
+                            }   
+                        }
+                        row++;
+                    }
+                    ArrayList<String> spec_value2=new ArrayList<>();
+                    //System.out.println(Integer.valueOf(args[3])-1);
+                    //System.out.println(Integer.valueOf(args[4]));
+                    for(int i=Integer.valueOf(args[3])-1;i<Integer.valueOf(args[4]);i++){
+                        spec_value2.add(spec_value.get(i));
+                    }
+                    BigDecimal stand_devi=new BigDecimal(standard_Deviation(spec_value2));
+                    deviation_array.add(stand_devi.stripTrailingZeros().toString());
+
+                }
+                //System.out.println(deviation_array);
+
+                ArrayList<Double> deviation_Int_array=new ArrayList<>();
+                for(int i=0;i<deviation_array.size();i++){
+                    deviation_Int_array.add(Double.valueOf(deviation_array.get(i)));
+                }
+                Collections.sort(deviation_Int_array);
+                Collections.reverse(deviation_Int_array);
+                ArrayList<String> deviation_array2=new ArrayList<>();
+
+                for(int i=0;i<deviation_array.size();i++){
+                    BigDecimal stand_devi2=new BigDecimal(deviation_Int_array.get(i).toString());
+
+                    deviation_array2.add(i,stand_devi2.stripTrailingZeros().toString());
+                }
+                System.out.println(deviation_array);
+                System.out.println("===================");
+
+                System.out.println(deviation_array2.size());
+
+                File file =new File("./output.csv");
+                if(!file.exists()){
+                    PrintWriter writer = new PrintWriter(new File("output.csv"));
+                    for(int x=0;x<=2;x++){
+                        System.out.println(deviation_array2.get(x));
+                        System.out.println(deviation_array.indexOf(deviation_array2.get(x)));
+                        //System.out.println(stock_names.get(deviation_array.indexOf(deviation_array2.get(x))));
+                        writer.append(stock_names.get(deviation_array.indexOf(deviation_array2.get(x))).text());
+                        if(x!=2){
+                            writer.append(",");
+                        }
+                    }
+                    writer.append("\n");
+                    for(int y=0;y<=2;y++){
+                        writer.append(deviation_array2.get(y));
+                        if(y!=2){
+                            writer.append(",");
+                        }
+                    }
+                    writer.append("\n");
+                    writer.close();
+                }
+                else{
+                    Path filePath = Paths.get("output.csv");
+                    for(int x=0;x<=2;x++){
+                        Files.write(filePath,stock_names.get(deviation_array.indexOf(deviation_array2.get(x))).text().getBytes(),StandardOpenOption.APPEND);
+                        if(x!=2){
+                            Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                        }
+                    }
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                    for(int y=0;y<=2;y++){
+                        Files.write(filePath,deviation_array2.get(y).getBytes(), StandardOpenOption.APPEND);
+                        if(y!=2){
+                            Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
+                        }
+                    }
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                }
+               
+
             }
 
         } catch (IOException e) {
