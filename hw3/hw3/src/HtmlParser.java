@@ -48,6 +48,7 @@ public class HtmlParser{
     
         return sum/Double.valueOf(values.size());
     }
+   
 
     public static String standard_Deviation(ArrayList<String> values){
         double sum_of_Squared_Deviations=0;
@@ -330,10 +331,12 @@ public class HtmlParser{
                         System.out.println(deviation_array.indexOf(deviation_array2.get(x)));
                         //System.out.println(stock_names.get(deviation_array.indexOf(deviation_array2.get(x))));
                         writer.append(stock_names.get(deviation_array.indexOf(deviation_array2.get(x))).text());
-                        if(x!=2){
-                            writer.append(",");
-                        }
+                        writer.append(",");
+
                     }
+                    writer.append(args[3]);
+                    writer.append(",");
+                    writer.append(args[4]);
                     writer.append("\n");
                     for(int y=0;y<=2;y++){
                         writer.append(deviation_array2.get(y));
@@ -348,11 +351,13 @@ public class HtmlParser{
                     Path filePath = Paths.get("output.csv");
                     for(int x=0;x<=2;x++){
                         Files.write(filePath,stock_names.get(deviation_array.indexOf(deviation_array2.get(x))).text().getBytes(),StandardOpenOption.APPEND);
-                        if(x!=2){
-                            Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND);
-                        }
+                        Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND); 
                     }
+                    Files.write(filePath,args[3].getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,args[4].getBytes(),StandardOpenOption.APPEND); 
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+                    
                     for(int y=0;y<=2;y++){
                         Files.write(filePath,deviation_array2.get(y).getBytes(), StandardOpenOption.APPEND);
                         if(y!=2){
@@ -362,6 +367,89 @@ public class HtmlParser{
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                 }
                
+
+            }
+            else if(args[0].equals("1")&& args[1].equals("4")){
+                BufferedReader reader=new BufferedReader(new FileReader("data.csv"));
+                String data_line=null; 
+                int row=1;                
+                int stock_posi=0;
+                ArrayList<String> spec_value=new ArrayList<>();                
+//append the stock names and values in Arraylist so that we can find the specific stock and its value we want.
+                while((data_line=reader.readLine())!=null){
+                    if(row==1){
+                        ArrayList<String> stock_names_array=new ArrayList<String>(Arrays.asList(data_line.split(",")));
+                        //find the position of args[2]
+                        stock_posi=stock_names_array.indexOf(args[2]);
+                    }
+                    else{
+                        if(data_line.contains("day")){
+                                ;                        }
+                        else{
+                            ArrayList<String> value_array=new ArrayList<>(Arrays.asList(data_line.split(",")));
+                            spec_value.add(value_array.get(stock_posi));
+                        }   
+                    }
+                    row++;
+                }
+                ArrayList<String> spec_value2=new ArrayList<>();
+                for(int i=Integer.valueOf(args[3])-1;i<Integer.valueOf(args[4]);i++){
+                    spec_value2.add(spec_value.get(i));
+                }
+
+ //take out the specific range of days.
+                ArrayList<String> spec_days=new ArrayList<>();
+                for(Integer i =Integer.valueOf(args[3]);i<=Integer.valueOf(args[4]);i++){
+                    spec_days.add(i.toString());
+                }
+//calculate slope:
+                double time_avg=average(spec_days);
+                double sample_avg=average(spec_value2);
+                double denominator=0;
+                double fraction=0;
+                Double slope;
+                for(int t=0;t<spec_days.size();t++){
+                    fraction+=(Double.valueOf(spec_days.get(t))-Double.valueOf(time_avg))*(Double.valueOf(spec_value2.get(t))-Double.valueOf(sample_avg));
+                    denominator+=(Double.valueOf(spec_days.get(t))-Double.valueOf(time_avg))*(Double.valueOf(spec_days.get(t))-Double.valueOf(time_avg));
+                }
+                slope=fraction/denominator;
+                BigDecimal round_slope=new BigDecimal(slope);
+//calculate intercept:
+                Double intercept;
+                intercept=sample_avg-(slope*time_avg);
+                BigDecimal round_intercept=new BigDecimal(intercept);
+
+//OUTPUT:
+                File file =new File("./output.csv");
+                if(!file.exists()){
+                    PrintWriter writer=new PrintWriter(new File("output.csv"));
+                    writer.append(args[2]);
+                    writer.append(",");
+                    writer.append(args[3]);
+                    writer.append(",");
+                    writer.append(args[4]);
+                    writer.append("\n");
+
+                    writer.append(round_slope.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString());
+                    writer.append(",");
+                    writer.append(round_intercept.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString());
+                    writer.append("\n");
+                    writer.close();
+                }
+                else{
+                    Path filePath = Paths.get("output.csv");
+                    Files.write(filePath,args[2].getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,args[3].getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,args[4].getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
+
+                    Files.write(filePath,round_slope.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString().getBytes(),StandardOpenOption.APPEND);
+                    Files.write(filePath,",".getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,round_intercept.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString().getBytes(),StandardOpenOption.APPEND); 
+                    Files.write(filePath,"\n".getBytes(),StandardOpenOption.APPEND);
+                }
 
             }
 
