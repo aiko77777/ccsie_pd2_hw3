@@ -56,7 +56,7 @@ public class HtmlParser{
             sum_of_Squared_Deviations+=(Double.valueOf(values.get(i))-average(values))*(Double.valueOf(values.get(i))-average(values));
         }
         BigDecimal result = new BigDecimal(squareRoot(sum_of_Squared_Deviations/(values.size()-1)));
-        return result.setScale(2,RoundingMode.HALF_UP).toString();
+        return result.setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toString();
         
     }
     public static void main(String[] args) {
@@ -94,8 +94,8 @@ public class HtmlParser{
                     for (Element value_line : value_lines) {    //write values and strip the excess zeros behide "."
                     //System.out.println(value_line.text());
                         value_count++;
-                        BigDecimal value = new BigDecimal(value_line.text());
-                        writer.append(value.stripTrailingZeros().toString());//STRIP ZERO!!
+                        //BigDecimal value = new BigDecimal(value_line.text());
+                        writer.append(value_line.text().toString());//STRIP ZERO!!
                         if(value_count!=name_size){
                             writer.append(",");
 
@@ -105,14 +105,25 @@ public class HtmlParser{
                     writer.close();
                     }
                     else{
+                    
                     Path filePath = Paths.get("data.csv");
+                    if(file.length()==0){
+                        for(Element stock_name_line : stock_name_lines){//write stock_names
+                            name_count++;
+                            Files.write(filePath,stock_name_line.text().getBytes(), StandardOpenOption.APPEND);
+                            if(name_count!=name_size){
+                                Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
+                            }
+                        
+                        }
+                    }
                     Files.write(filePath,doc.title().getBytes(), StandardOpenOption.APPEND);
                     Files.write(filePath,"\n".getBytes(), StandardOpenOption.APPEND);
                     for (Element value_line : value_lines) {    //if data.csv has been existed,we need to just write values to new line.
                         //System.out.println(value_line.text());
                         value_count++;
-                        BigDecimal value = new BigDecimal(value_line.text());
-                        Files.write(filePath,value.stripTrailingZeros().toString().getBytes(), StandardOpenOption.APPEND);//STRIP ZERO!!
+                        //BigDecimal value = new BigDecimal(value_line.text());
+                        Files.write(filePath,value_line.text().toString().getBytes(), StandardOpenOption.APPEND);//STRIP ZERO!!
                         if(value_count!=name_size){
                             Files.write(filePath,",".getBytes(), StandardOpenOption.APPEND);
                         }
